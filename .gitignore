@@ -1,0 +1,34 @@
+# Node
+node_modules/
+npm-debug.log*
+.env
+.env.*
+!.env.example
+coverage/
+dist/
+
+# Terraform
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+*.tfvars
+!*.tfvars.example
+# Catch plan files saved without the .tfplan extension (e.g. `terraform plan -out plan`)
+terraform/plan
+terraform/tfplan
+
+# Editors
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# Claude Code session-local config
+.claude/
+
+# Secrets (defense in depth)
+*.pem
+*.key
+kubeconfig*
