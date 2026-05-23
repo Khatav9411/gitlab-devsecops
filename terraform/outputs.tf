@@ -28,6 +28,15 @@ output "eso_uami_client_id" {
   description = "Annotate the ESO service account with this client-id for workload identity"
 }
 
+output "grafana_uami_client_id" {
+  value       = azurerm_user_assigned_identity.grafana.client_id
+  description = "Annotate the Grafana service account with this client-id for workload identity"
+}
+
+output "log_analytics_workspace_id" {
+  value = azurerm_log_analytics_workspace.this.workspace_id
+}
+
 output "tenant_id" {
   value = data.azurerm_client_config.current.tenant_id
 }

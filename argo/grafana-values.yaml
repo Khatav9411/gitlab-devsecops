@@ -1,0 +1,60 @@
+################################################################################
+# Grafana Helm values:
+# - Workload identity to Azure Monitor (no static SP creds)
+# - NGINX ingress + cert-manager TLS at grafana.shugeinfo.xyz
+# - Azure Monitor data source pre-provisioned
+# - No persistence (POC; dashboards are ephemeral unless saved to git via API)
+################################################################################
+
+serviceAccount:
+  create: true
+  name: grafana
+  annotations:
+    azure.workload.identity/client-id: "7fa7c806-b658-4a5d-bf80-ae31176740b7"
+
+podLabels:
+  azure.workload.identity/use: "true"
+
+persistence:
+  enabled: false
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 200Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+ingress:
+  enabled: true
+  ingressClassName: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+  hosts:
+    - grafana.shugeinfo.xyz
+  tls:
+    - secretName: grafana-tls
+      hosts:
+        - grafana.shugeinfo.xyz
+
+# Built-in plugin in Grafana 10+, but listing for clarity
+plugins:
+  - grafana-azure-monitor-datasource
+
+datasources:
+  datasources.yaml:
+    apiVersion: 1
+    datasources:
+      - name: Azure Monitor
+        type: grafana-azure-monitor-datasource
+        access: proxy
+        isDefault: true
+        jsonData:
+          azureAuthType: workloadidentity
+          cloudName: azuremonitor
+          subscriptionId: "5972c422-e2f7-41f9-ab8e-7ce76db35969"
+          tenantId: "27c0839f-2761-40e0-9454-0ff9475691c3"
+          clientId: "7fa7c806-b658-4a5d-bf80-ae31176740b7"
