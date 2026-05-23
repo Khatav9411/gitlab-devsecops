@@ -47,9 +47,10 @@ lint:k8s:
     name: alpine/k8s:1.30.4
     entrypoint: [""]
   script:
-    - kubectl --dry-run=client apply -f k8s/namespace.yaml
-    - kubectl --dry-run=client apply -f k8s/service.yaml
-    - kubectl --dry-run=client apply -f k8s/deployment.yaml
+    # Render the Kustomize base; any missing-file / bad-yaml / bad-ref errors
+    # surface here without needing API server access.
+    - kubectl kustomize k8s/ > /tmp/rendered.yaml
+    - wc -l /tmp/rendered.yaml
   rules:
     - changes: [k8s/**/*]
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
