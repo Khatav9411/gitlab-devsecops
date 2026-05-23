@@ -110,8 +110,7 @@ build:image:
         --destination "${IMAGE_REPO}:${CI_COMMIT_SHORT_SHA}"
         --destination "${IMAGE_REPO}:latest"
         --cache=true
-        --snapshot-mode=redirect
-        --use-new-run
+        --snapshot-mode=redo
   rules:
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
 
