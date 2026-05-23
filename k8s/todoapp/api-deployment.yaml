@@ -46,7 +46,7 @@ spec:
             - name: PORT
               value: "8080"
             - name: COSMOS_ENDPOINT
-              value: "REPLACE_COSMOS_ENDPOINT"
+              value: "https://cosmos-aks-poc-039d77.documents.azure.com:443/"
             - name: COSMOS_DATABASE
               value: "todoapp"
             - name: COSMOS_CONTAINER
