@@ -127,16 +127,31 @@ multi  = json.dumps({'auths': {
 }})
 single = json.dumps({'auths': {'https://index.docker.io/v1/': {'auth': auth}}})
 
-apply('argocd', 'dockerhub-creds',  multi)
-apply('myapp',  'dockerhub-secret', single)
+apply('argocd',  'dockerhub-creds',  multi)
+apply('myapp',   'dockerhub-secret', single)
+apply('todoapp', 'dockerhub-secret', single)
 PYEOF
 else
   echo "    Skipped (DH_USER + NEW_DH_TOKEN env vars not set)."
   echo "    Set them and re-run, or create the secrets manually."
 fi
 
-echo "==> Argo Application (myapp)"
+echo "==> Render todoapp manifests with Cosmos endpoint + UAMI client ID"
+TODOAPI_CLIENT=$(cd terraform && terraform output -raw todoapi_uami_client_id)
+COSMOS_ENDPOINT=$(cd terraform && terraform output -raw cosmos_endpoint)
+sed -i.bak \
+  -e "s|REPLACE_TODOAPI_UAMI_CLIENT_ID|${TODOAPI_CLIENT}|g" \
+  k8s/todoapp/serviceaccount-api.yaml
+sed -i.bak \
+  -e "s|REPLACE_COSMOS_ENDPOINT|${COSMOS_ENDPOINT}|g" \
+  k8s/todoapp/api-deployment.yaml
+rm -f k8s/todoapp/*.bak
+echo "    Rendered. Commit + push so Argo syncs them:"
+echo "      git add k8s/todoapp/ && git commit -m 'render todoapp manifests' && git push"
+
+echo "==> Argo Applications"
 kubectl apply -f argo/myapp-application.yaml
+kubectl apply -f argo/todoapp-application.yaml
 
 cat <<EOF
 
@@ -155,6 +170,11 @@ cat <<EOF
      kubectl -n grafana get secret grafana \\
        -o jsonpath='{.data.admin-password}' | base64 -d; echo
 
- App: https://myapp.shugeinfo.xyz/    (waits for DNS A record + first Argo sync)
+ Apps (require DNS A records → ingress LB IP):
+   myapp:  https://myapp.shugeinfo.xyz/
+   todo:   https://todo.shugeinfo.xyz/
+
+ Add the todo DNS A record + push the rendered k8s/todoapp/ manifests, and
+ Argo will sync the 3-tier app (React + Express + Cosmos DB).
 ================================================================================
 EOF

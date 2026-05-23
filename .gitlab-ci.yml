@@ -1,9 +1,9 @@
 ################################################################################
 # GitLab DevSecOps pipeline (GitOps): build -> scan -> push (Docker Hub).
 #
-# Deployment to AKS is handled by Argo CD + Argo CD Image Updater running in
-# the cluster. The updater polls Docker Hub, sees the new image tag this
-# pipeline pushes, and updates the Argo Application — no Azure creds in CI.
+# Builds three images in parallel (myapp, todoapi, todofrontend) and runs
+# container scanning on each. Deployment is handled by Argo CD + Image Updater
+# in the cluster, not by this pipeline.
 #
 # Required CI/CD variables (Settings -> CI/CD -> Variables, all Protected):
 #   DOCKERHUB_USERNAME      (masked: no)
@@ -23,10 +23,7 @@ stages:
   - scan
 
 variables:
-  IMAGE_REPO: "docker.io/${DOCKERHUB_USERNAME}/myapp"
-  IMAGE_TAG: "${CI_COMMIT_SHORT_SHA}"
-  CS_IMAGE: "${IMAGE_REPO}:${CI_COMMIT_SHORT_SHA}"
-  CS_REGISTRY_USER: "${DOCKERHUB_USERNAME}"
+  CS_REGISTRY_USER:     "${DOCKERHUB_USERNAME}"
   CS_REGISTRY_PASSWORD: "${DOCKERHUB_TOKEN}"
 
 # ----------------------------------------------------------------------------
@@ -37,8 +34,12 @@ lint:dockerfile:
   image: hadolint/hadolint:latest-debian
   script:
     - hadolint Dockerfile
+    - hadolint todoapp/api/Dockerfile
+    - hadolint todoapp/frontend/Dockerfile
   rules:
-    - changes: [Dockerfile]
+    - changes:
+        - Dockerfile
+        - todoapp/**/Dockerfile
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
 
 lint:k8s:
@@ -47,10 +48,9 @@ lint:k8s:
     name: alpine/k8s:1.30.4
     entrypoint: [""]
   script:
-    # Render the Kustomize base; any missing-file / bad-yaml / bad-ref errors
-    # surface here without needing API server access.
-    - kubectl kustomize k8s/ > /tmp/rendered.yaml
-    - wc -l /tmp/rendered.yaml
+    - kubectl kustomize k8s/         > /tmp/myapp.yaml
+    - kubectl kustomize k8s/todoapp/ > /tmp/todoapp.yaml
+    - wc -l /tmp/myapp.yaml /tmp/todoapp.yaml
   rules:
     - changes: [k8s/**/*]
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
@@ -61,27 +61,35 @@ lint:k8s:
 unit:node:
   stage: test
   image: node:20-alpine
+  parallel:
+    matrix:
+      - { APP_DIR: app,          ENTRY: src/index.js }
+      - { APP_DIR: todoapp/api,  ENTRY: src/index.js }
   cache:
     key:
-      files: [app/package.json]
-    paths: [app/node_modules/]
+      files: ["$APP_DIR/package.json"]
+    paths: ["$APP_DIR/node_modules/"]
   before_script:
-    - cd app && npm install --no-audit --no-fund
+    - cd $APP_DIR && npm install --no-audit --no-fund
   script:
-    - node --check src/index.js
+    - node --check $ENTRY
   rules:
-    - changes: [app/**/*]
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
 
 # ----------------------------------------------------------------------------
-# Build + push (rootless, with Kaniko)
+# Build + push (rootless, with Kaniko). Matrix builds three images in parallel.
 # ----------------------------------------------------------------------------
 build:image:
   stage: build
   image:
     name: gcr.io/kaniko-project/executor:v1.23.2-debug
     entrypoint: [""]
+  parallel:
+    matrix:
+      - { IMG: myapp,        CTX: ".",                DOCKERFILE: "Dockerfile" }
+      - { IMG: todoapi,      CTX: "todoapp/api",      DOCKERFILE: "todoapp/api/Dockerfile" }
+      - { IMG: todofrontend, CTX: "todoapp/frontend", DOCKERFILE: "todoapp/frontend/Dockerfile" }
   script:
     - mkdir -p /kaniko/.docker
     - |
@@ -95,20 +103,28 @@ build:image:
       }
       EOF
     - /kaniko/executor
-        --context "${CI_PROJECT_DIR}"
-        --dockerfile "${CI_PROJECT_DIR}/Dockerfile"
-        --destination "${IMAGE_REPO}:${CI_COMMIT_SHORT_SHA}"
-        --destination "${IMAGE_REPO}:latest"
+        --context    "${CI_PROJECT_DIR}/${CTX}"
+        --dockerfile "${CI_PROJECT_DIR}/${DOCKERFILE}"
+        --destination "docker.io/${DOCKERHUB_USERNAME}/${IMG}:${CI_COMMIT_SHORT_SHA}"
+        --destination "docker.io/${DOCKERHUB_USERNAME}/${IMG}:latest"
         --cache=true
         --snapshot-mode=redo
   rules:
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
 
 # ----------------------------------------------------------------------------
-# Scan: container_scanning runs against CS_IMAGE after build.
+# Container scan each image. The template-defined job is parameterised here
+# with parallel:matrix so we get one report per image.
 # ----------------------------------------------------------------------------
 container_scanning:
   stage: scan
-  needs: [build:image]
+  needs:
+    - job: build:image
+      artifacts: false
+  parallel:
+    matrix:
+      - CS_IMAGE: "docker.io/${DOCKERHUB_USERNAME}/myapp:${CI_COMMIT_SHORT_SHA}"
+      - CS_IMAGE: "docker.io/${DOCKERHUB_USERNAME}/todoapi:${CI_COMMIT_SHORT_SHA}"
+      - CS_IMAGE: "docker.io/${DOCKERHUB_USERNAME}/todofrontend:${CI_COMMIT_SHORT_SHA}"
   rules:
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'

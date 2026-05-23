@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: todofrontend
+  namespace: todoapp
+  labels:
+    app.kubernetes.io/name: todofrontend
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: todofrontend
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+      protocol: TCP

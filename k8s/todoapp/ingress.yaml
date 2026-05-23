@@ -1,0 +1,35 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: todoapp
+  namespace: todoapp
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - todo.shugeinfo.xyz
+      secretName: todoapp-tls
+  rules:
+    - host: todo.shugeinfo.xyz
+      http:
+        paths:
+          # /api/* → backend
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: todoapi
+                port:
+                  number: 80
+          # everything else → React SPA
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: todofrontend
+                port:
+                  number: 80

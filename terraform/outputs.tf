@@ -37,6 +37,23 @@ output "log_analytics_workspace_id" {
   value = azurerm_log_analytics_workspace.this.workspace_id
 }
 
+output "cosmos_endpoint" {
+  value = azurerm_cosmosdb_account.todoapp.endpoint
+}
+
+output "cosmos_database" {
+  value = azurerm_cosmosdb_sql_database.todoapp.name
+}
+
+output "cosmos_container" {
+  value = azurerm_cosmosdb_sql_container.todos.name
+}
+
+output "todoapi_uami_client_id" {
+  value       = azurerm_user_assigned_identity.todoapi.client_id
+  description = "Annotate the todoapi service account with this client-id for workload identity"
+}
+
 output "tenant_id" {
   value = data.azurerm_client_config.current.tenant_id
 }
