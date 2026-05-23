@@ -1,0 +1,31 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: myapp
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  annotations:
+    # Image Updater watches Docker Hub for new tags on this image
+    argocd-image-updater.argoproj.io/image-list: myapp=docker.io/siddhuge/myapp
+    argocd-image-updater.argoproj.io/myapp.update-strategy: newest-build
+    argocd-image-updater.argoproj.io/myapp.allow-tags: regexp:^[0-9a-f]{8}$
+    argocd-image-updater.argoproj.io/myapp.pull-secret: pullsecret:argocd/dockerhub-creds
+    # Write the new tag back via Argo (not git) — simpler for POC
+    argocd-image-updater.argoproj.io/write-back-method: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://gitlab.com/Siddhuge/gitlab-devsecops-poc.git
+    targetRevision: main
+    path: k8s
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: myapp
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true

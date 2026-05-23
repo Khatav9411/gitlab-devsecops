@@ -1,15 +1,13 @@
 ################################################################################
-# GitLab DevSecOps pipeline: build -> scan -> push (Docker Hub) -> deploy (AKS)
+# GitLab DevSecOps pipeline (GitOps): build -> scan -> push (Docker Hub).
+#
+# Deployment to AKS is handled by Argo CD + Argo CD Image Updater running in
+# the cluster. The updater polls Docker Hub, sees the new image tag this
+# pipeline pushes, and updates the Argo Application — no Azure creds in CI.
 #
 # Required CI/CD variables (Settings -> CI/CD -> Variables, all Protected):
 #   DOCKERHUB_USERNAME      (masked: no)
 #   DOCKERHUB_TOKEN         (masked: yes)
-#   AZURE_CLIENT_ID         (masked: yes)
-#   AZURE_CLIENT_SECRET     (masked: yes)
-#   AZURE_TENANT_ID         (masked: yes)
-#   AZURE_SUBSCRIPTION_ID   (masked: yes)
-#   AKS_RESOURCE_GROUP      (masked: no)
-#   AKS_CLUSTER_NAME        (masked: no)
 ################################################################################
 
 include:
@@ -23,22 +21,13 @@ stages:
   - test
   - build
   - scan
-  - deploy
-  - verify
 
 variables:
   IMAGE_REPO: "docker.io/${DOCKERHUB_USERNAME}/myapp"
   IMAGE_TAG: "${CI_COMMIT_SHORT_SHA}"
-  IMAGE_FULL: "${IMAGE_REPO}:${CI_COMMIT_SHORT_SHA}"
-  # Container Scanning template reads this:
   CS_IMAGE: "${IMAGE_REPO}:${CI_COMMIT_SHORT_SHA}"
   CS_REGISTRY_USER: "${DOCKERHUB_USERNAME}"
   CS_REGISTRY_PASSWORD: "${DOCKERHUB_TOKEN}"
-  K8S_NAMESPACE: "myapp"
-
-# No `default.tags` block — let GitLab.com shared runners (or any untagged
-# self-hosted runner) pick up jobs. Add `tags: [your-tag]` per-job if you
-# later need to pin specific jobs to a specific runner.
 
 # ----------------------------------------------------------------------------
 # Validate
@@ -60,7 +49,7 @@ lint:k8s:
   script:
     - kubectl --dry-run=client apply -f k8s/namespace.yaml
     - kubectl --dry-run=client apply -f k8s/service.yaml
-    # deployment/ingress contain REPLACE_* placeholders rendered at deploy time
+    - kubectl --dry-run=client apply -f k8s/deployment.yaml
   rules:
     - changes: [k8s/**/*]
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
@@ -115,65 +104,10 @@ build:image:
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
 
 # ----------------------------------------------------------------------------
-# Scan: container_scanning runs automatically against CS_IMAGE after build.
-# The Jobs/Container-Scanning template puts it in the "test" stage by default;
-# pin it to our "scan" stage so it runs after build:image.
+# Scan: container_scanning runs against CS_IMAGE after build.
 # ----------------------------------------------------------------------------
 container_scanning:
   stage: scan
   needs: [build:image]
-  rules:
-    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
-
-# ----------------------------------------------------------------------------
-# Deploy to AKS
-# ----------------------------------------------------------------------------
-.deploy_base:
-  image: mcr.microsoft.com/azure-cli:2.64.0
-  before_script:
-    - az login --service-principal
-        -u "$AZURE_CLIENT_ID"
-        -p "$AZURE_CLIENT_SECRET"
-        --tenant "$AZURE_TENANT_ID" >/dev/null
-    - az account set --subscription "$AZURE_SUBSCRIPTION_ID"
-    - az aks install-cli >/dev/null
-    - az aks get-credentials
-        --resource-group "$AKS_RESOURCE_GROUP"
-        --name "$AKS_CLUSTER_NAME"
-        --overwrite-existing
-    - kubectl version --client=true
-
-deploy:aks:
-  stage: deploy
-  extends: .deploy_base
-  environment:
-    name: production
-    url: https://myapp.shugeinfo.xyz
-  script:
-    - kubectl apply -f k8s/namespace.yaml
-    - |
-      kubectl -n "$K8S_NAMESPACE" create secret docker-registry dockerhub-secret \
-        --docker-server=https://index.docker.io/v1/ \
-        --docker-username="$DOCKERHUB_USERNAME" \
-        --docker-password="$DOCKERHUB_TOKEN" \
-        --dry-run=client -o yaml | kubectl apply -f -
-    - |
-      sed -e "s|REPLACE_DOCKERHUB_USERNAME|${DOCKERHUB_USERNAME}|g" \
-          -e "s|REPLACE_TAG|${IMAGE_TAG}|g" \
-          k8s/deployment.yaml | kubectl apply -f -
-    - kubectl apply -f k8s/service.yaml
-  rules:
-    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
-
-# ----------------------------------------------------------------------------
-# Verify rollout succeeded
-# ----------------------------------------------------------------------------
-verify:rollout:
-  stage: verify
-  extends: .deploy_base
-  needs: [deploy:aks]
-  script:
-    - kubectl -n "$K8S_NAMESPACE" rollout status deployment/myapp --timeout=180s
-    - kubectl -n "$K8S_NAMESPACE" get pods -l app.kubernetes.io/name=myapp -o wide
   rules:
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
