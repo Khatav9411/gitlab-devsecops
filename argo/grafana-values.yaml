@@ -15,6 +15,13 @@ serviceAccount:
 podLabels:
   azure.workload.identity/use: "true"
 
+# Required: enable workload identity auth in Grafana itself.
+# Without this, the Azure Monitor data source ignores azureAuthType=workloadidentity
+# and falls back to the App Registration form (asks for tenant + client ID + secret).
+grafana.ini:
+  azure:
+    workload_identity_enabled: true
+
 persistence:
   enabled: false
 
