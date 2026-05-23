@@ -24,7 +24,7 @@ variable "kubernetes_version" {
 
 variable "node_count" {
   type        = number
-  default     = 1
+  default     = 2
   description = "Number of nodes in the default node pool"
 }
 

@@ -10,6 +10,7 @@ app.get('/', (_req, res) => {
     app: 'myapp',
     version: process.env.APP_VERSION || 'dev',
     node: process.version,
+    secret_from_kv: process.env.DEMO_SECRET || '(not loaded)',
   });
 });
 

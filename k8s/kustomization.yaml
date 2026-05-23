@@ -10,6 +10,7 @@ resources:
   - deployment.yaml
   - service.yaml
   - ingress.yaml
+  - external-secret-demo.yaml
 
 # Argo CD Image Updater rewrites this block on every new tag it sees.
 images:
