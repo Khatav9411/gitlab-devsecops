@@ -36,9 +36,9 @@ variables:
   CS_REGISTRY_PASSWORD: "${DOCKERHUB_TOKEN}"
   K8S_NAMESPACE: "myapp"
 
-default:
-  tags:
-    - docker
+# No `default.tags` block — let GitLab.com shared runners (or any untagged
+# self-hosted runner) pick up jobs. Add `tags: [your-tag]` per-job if you
+# later need to pin specific jobs to a specific runner.
 
 # ----------------------------------------------------------------------------
 # Validate
