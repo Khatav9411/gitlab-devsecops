@@ -3,8 +3,10 @@ kind: Kustomization
 
 namespace: myapp
 
-# cluster-issuer.yaml is intentionally NOT here — it's a cluster-scoped
-# resource managed once at cluster bootstrap, not by the app's Argo Application.
+# The ClusterIssuer is in /bootstrap, not here — it's cluster-scoped and
+# applied once during cluster setup, outside this Argo Application's purview.
+# (Keeping it in this folder caused Argo to prune it on the directory->kustomize
+#  transition.)
 resources:
   - namespace.yaml
   - deployment.yaml
