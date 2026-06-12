@@ -1,0 +1,20 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: myapp
+
+# The ClusterIssuer is in /bootstrap, not here — it's cluster-scoped and
+# applied once during cluster setup, outside this Argo Application's purview.
+# (Keeping it in this folder caused Argo to prune it on the directory->kustomize
+#  transition.)
+resources:
+  - namespace.yaml
+  - deployment.yaml
+  - service.yaml
+  - ingress.yaml
+  # - external-secret-demo.yaml
+
+# Argo CD Image Updater rewrites this block on every new tag it sees.
+images:
+  - name: docker.io/kamleshcloud/myapp
+    newTag: latest
