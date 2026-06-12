@@ -7,7 +7,7 @@ metadata:
     - resources-finalizer.argocd.argoproj.io
   annotations:
     # Image Updater watches Docker Hub for new tags on this image
-    argocd-image-updater.argoproj.io/image-list: myapp=docker.io/siddhuge/myapp
+    argocd-image-updater.argoproj.io/image-list: myapp=docker.io/kamleshcloud/myapp
     argocd-image-updater.argoproj.io/myapp.update-strategy: newest-build
     argocd-image-updater.argoproj.io/myapp.allow-tags: regexp:^[0-9a-f]{8}$
     argocd-image-updater.argoproj.io/myapp.pull-secret: pullsecret:argocd/dockerhub-creds
@@ -16,7 +16,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://gitlab.com/Siddhuge/gitlab-devsecops-poc.git
+    repoURL: https://github.com/Khatav9411/gitlab-devsecops.git
     targetRevision: main
     path: k8s
   destination:

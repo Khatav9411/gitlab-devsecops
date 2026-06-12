@@ -11,10 +11,10 @@ spec:
   ingressClassName: nginx
   tls:
     - hosts:
-        - myapp.shugeinfo.xyz
+        - myapp.kamleshkhatavkar.online
       secretName: myapp-tls
   rules:
-    - host: myapp.shugeinfo.xyz
+    - host: myapp.kamleshkhatavkar.online
       http:
         paths:
           - path: /

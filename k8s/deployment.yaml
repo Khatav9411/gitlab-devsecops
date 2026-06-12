@@ -35,7 +35,7 @@ spec:
       terminationGracePeriodSeconds: 30
       containers:
         - name: myapp
-          image: docker.io/siddhuge/myapp:6ea765bc
+          image: docker.io/kamleshcloud/myapp:latest
           imagePullPolicy: IfNotPresent
           ports:
             - name: http

@@ -21,7 +21,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL:        https://gitlab.com/Siddhuge/gitlab-devsecops-poc.git
+    repoURL:        https://github.com/Khatav9411/gitlab-devsecops.git
     targetRevision: main
     path:           k8s/todoapp
   destination:
