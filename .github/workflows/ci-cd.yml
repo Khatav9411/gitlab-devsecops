@@ -41,3 +41,20 @@ jobs:
         run: |
           docker push kamleshcloud/myapp:${IMAGE_TAG}
           docker push kamleshcloud/myapp:latest
+
+      - name: Update Kustomization
+        run: |
+          sed -i "s|newTag:.*|newTag: ${IMAGE_TAG}|g" k8s/kustomization.yaml
+
+            - name: Update Kustomize Image Tag
+        run: |
+          sed -i "s|newTag:.*|newTag: ${IMAGE_TAG}|g" k8s/kustomization.yaml
+
+      - name: Commit GitOps Image Tag
+        run: |
+          git config --global user.email "github-actions@github.com"
+          git config --global user.name "github-actions"
+
+          git add k8s/kustomization.yaml
+          git commit -m "Update myapp image tag to ${IMAGE_TAG}" || echo "No changes to commit"
+          git push
