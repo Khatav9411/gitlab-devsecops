@@ -11,10 +11,10 @@ spec:
   ingressClassName: nginx
   tls:
     - hosts:
-        - todo.shugeinfo.xyz
+        - todo.kamleshkhatavkar.online
       secretName: todoapp-tls
   rules:
-    - host: todo.shugeinfo.xyz
+    - host: todo.kamleshkhatavkar.online
       http:
         paths:
           # /api/* → backend

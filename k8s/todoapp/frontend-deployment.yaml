@@ -33,7 +33,7 @@ spec:
         - name: dockerhub-secret
       containers:
         - name: nginx
-          image: docker.io/siddhuge/todofrontend:bootstrap
+          image: docker.io/kamleshcloud/todofrontend:latest
           imagePullPolicy: IfNotPresent
           ports:
             - name: http

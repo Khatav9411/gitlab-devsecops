@@ -14,7 +14,7 @@ resources:
 
 # Argo CD Image Updater rewrites these two newTag values on every new build.
 images:
-  - name: docker.io/siddhuge/todoapi
-    newTag: bootstrap
-  - name: docker.io/siddhuge/todofrontend
-    newTag: bootstrap
+  - name: docker.io/kamleshcloud/todoapi
+    newTag: latest
+  - name: docker.io/kamleshcloud/todofrontend
+    newTag: latest
