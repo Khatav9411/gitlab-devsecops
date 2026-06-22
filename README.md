@@ -254,24 +254,7 @@ cluster setup, not managed by Argo" status explicit.
 
 ---
 
-## Cost
 
-| Item | Monthly |
-|---|---|
-| AKS 2× Standard_B2s | ~$32 |
-| Load Balancer Standard | ~$3 |
-| Public IP (Standard, static) | ~$4 |
-| Log Analytics (5 GB free, then $2.30/GB) | ~$5 (typical POC ingest) |
-| Cosmos DB | **$0** (free tier covers 1000 RU/s + 25 GB) |
-| Key Vault | <$0.50 |
-| Managed Identities | $0 |
-| GitLab CI minutes (free tier) | $0 |
-| Docker Hub (public repos) | $0 |
-| **Total** | **~$45–50/month** |
-
-`terraform destroy` stops the meter entirely.
-
----
 
 ## What I'd add for true production
 
@@ -316,11 +299,3 @@ cluster setup, not managed by Argo" status explicit.
 ```
 
 ---
-
-## Quick links
-
-- **Step-by-step bring-up:** [`deployment.md`](deployment.md)
-- **Bootstrap script:** [`bootstrap/bootstrap.sh`](bootstrap/bootstrap.sh)
-- **Pipeline:** [`.gitlab-ci.yml`](.gitlab-ci.yml)
-- **Argo Applications:** [`argo/`](argo/)
-- **Terraform:** [`terraform/`](terraform/)
