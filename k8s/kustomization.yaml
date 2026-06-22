@@ -17,4 +17,4 @@ resources:
 # Argo CD Image Updater rewrites this block on every new tag it sees.
 images:
   - name: docker.io/kamleshcloud/myapp
-    newTag: 2c240937
+    newTag: ebf02f78
